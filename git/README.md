@@ -59,6 +59,35 @@ alias git-sync="~/scripts/git/sync-all.sh"
 git-sync
 ```
 
+### release-tag.sh - 智慧版本標籤工具
+
+智慧掃描現有標籤前綴，提供互動式版本遞增功能，自動生成語義化版本標籤。
+
+**功能特色：**
+- 🔍 自動掃描標籤前綴（release/, testing/, hotfix/ 等）
+- 🎯 互動式前綴選擇和版本遞增
+- 📊 支援語義化版本控制（major.minor.patch）
+- 🌿 智慧分支檢查，可切換到主要分支進行操作
+- 🔄 自動同步遠端標籤，避免重複標籤
+- 🔒 SHA1 檢查，防止在同一 commit 重複建標籤
+- 🛡️ 安全的工作目錄檢查和衝突檢測
+- 🚀 可選的自動推送到遠端
+
+**使用方式：**
+```bash
+# 互動式模式
+./git/release-tag.sh
+
+# 建立標籤並推送到遠端
+./git/release-tag.sh --push
+
+# 強制模式（跳過確認）
+./git/release-tag.sh --force
+
+# 顯示說明
+./git/release-tag.sh --help
+```
+
 ## 🔒 安全特性
 
 - **受保護分支：** 自動跳過重要分支（master, main, develop, testing, staging, production）
@@ -99,6 +128,71 @@ $ ./git/sync-all.sh
 ✅ 同步完成
 ```
 
+### 版本標籤範例
+```bash
+$ ./git/release-tag.sh
+🏷️  Git 智慧版本標籤工具
+
+🌿 檢查分支狀態...
+📍 當前分支：feature/new-feature
+🔍 掃描可用的主要分支...
+✅ 找到以下主要分支：
+  1. main
+  2. develop
+  3. testing
+⚠️  當前分支 feature/new-feature 不是常見的主要分支
+
+是否要切換到主要分支？(Y/n): y
+
+請選擇要切換的分支：
+  1. main
+  2. develop
+  3. testing
+  4. 取消切換
+請輸入編號 (1-4): 1
+🔄 切換到分支：main
+✅ 成功切換到分支：main
+🔄 拉取最新變更...
+✅ 成功拉取最新變更
+
+🔄 獲取遠端最新標籤...
+✅ 成功獲取遠端標籤
+
+🔍 掃描專案標籤前綴...
+✅ 找到以下標籤前綴：
+ 1. release
+ 2. testing
+ 3. hotfix
+
+請選擇要操作的標籤前綴：
+請輸入編號 (1-3): 1
+✅ 已選擇前綴：release
+📍 當前最新版本：release/v1.2.3
+
+🔍 檢查 commit 狀態...
+✅ 當前 commit (a1b2c3d4) 與最新標籤 release/v1.2.3 (e5f6g7h8) 不同，可以建立新標籤
+
+請選擇版本遞增類型：
+1. patch  - 修復版本 (1.2.3 → 1.2.4)
+2. minor  - 功能版本 (1.2.3 → 1.3.0)
+3. major  - 重大版本 (1.2.3 → 2.0.0)
+請輸入編號 (1-3): 1
+✅ 已選擇 patch 遞增：1.2.3 → 1.2.4
+
+🔄 最終檢查遠端標籤狀態...
+
+即將建立標籤：release/v1.2.4
+確定要建立此標籤嗎？(y/N): y
+
+是否要同時推送標籤到遠端？(y/N): y
+✓ 將會推送標籤到遠端
+
+✅ 成功建立標籤：release/v1.2.4
+🚀 推送標籤到遠端...
+✅ 成功推送標籤到遠端
+🎉 版本標籤操作完成！
+```
+
 ## ⚙️ 系統需求
 
 - **作業系統：** macOS / Linux
@@ -113,6 +207,7 @@ $ ./git/sync-all.sh
 # 加入到 ~/.zshrc 或 ~/.bashrc
 alias git-clean="~/scripts/git/clean-branch.sh"
 alias git-sync="~/scripts/git/sync-all.sh"
+alias git-tag="~/scripts/git/release-tag.sh"
 
 # 重新載入設定
 source ~/.zshrc  # 或 source ~/.bashrc
