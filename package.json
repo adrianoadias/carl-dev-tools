@@ -1,0 +1,29 @@
+{
+  "name": "@devkit/scripts",
+  "version": "1.0.0",
+  "description": "DevKit 開發工具包 - 統一管理所有開發腳本",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/cli.js",
+    "env": "cd node-tools/env && node src/cli.js",
+    "lint": "eslint node-tools/*/src/**/*.js",
+    "format": "prettier --write node-tools/*/src/**/*.js"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "chalk": "^5.3.0",
+    "inquirer": "^9.2.12",
+    "js-yaml": "^4.1.0",
+    "diff": "^5.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.54.0",
+    "prettier": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0 <23.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.10.0"
+}

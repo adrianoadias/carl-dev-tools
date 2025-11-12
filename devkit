@@ -51,7 +51,8 @@ show_help() {
 
 # 獲取所有分類
 get_categories() {
-    for category_dir in "$TOOLS_DIR"/*/; do
+    # 掃描 bash-tools 目錄
+    for category_dir in "$TOOLS_DIR"/bash-tools/*/; do
         if [ -d "$category_dir" ]; then
             local category_name=$(basename "$category_dir")
             
@@ -64,15 +65,32 @@ get_categories() {
             fi
         fi
     done
+    
+    # 掃描 node-tools 目錄
+    for category_dir in "$TOOLS_DIR"/node-tools/*/; do
+        if [ -d "$category_dir" ]; then
+            local category_name=$(basename "$category_dir")
+            
+            # 跳過隱藏目錄和非工具目錄
+            if [[ "$category_name" != .* ]] && [[ "$category_name" != "node_modules" ]]; then
+                # 檢查是否有 package.json 或 CLI 入口
+                if [ -f "$category_dir/package.json" ] || [ -f "$category_dir/src/cli.js" ]; then
+                    echo "$category_name"
+                fi
+            fi
+        fi
+    done
 }
 
 # 獲取分類下的工具
 get_category_tools() {
     local category="$1"
-    local category_dir="$TOOLS_DIR/$category"
+    local bash_category_dir="$TOOLS_DIR/bash-tools/$category"
+    local node_category_dir="$TOOLS_DIR/node-tools/$category"
     
-    if [ -d "$category_dir" ]; then
-        for script_file in "$category_dir"/*.sh; do
+    # 檢查 bash-tools 目錄
+    if [ -d "$bash_category_dir" ]; then
+        for script_file in "$bash_category_dir"/*.sh; do
             if [ -f "$script_file" ]; then
                 local tool_name=$(basename "$script_file" .sh)
                 local description=""
@@ -89,6 +107,23 @@ get_category_tools() {
                 echo "$tool_name|$script_file|$description"
             fi
         done
+    fi
+    
+    # 檢查 node-tools 目錄
+    if [ -d "$node_category_dir" ]; then
+        # Node.js 工具通常有統一的 CLI 入口
+        if [ -f "$node_category_dir/src/cli.js" ]; then
+            # 從 package.json 取得描述
+            local description=""
+            if [ -f "$node_category_dir/package.json" ]; then
+                description=$(grep '"description"' "$node_category_dir/package.json" 2>/dev/null | sed 's/.*"description": *"\([^"]*\)".*/\1/')
+            fi
+            if [ -z "$description" ]; then
+                description="$category Node.js 工具"
+            fi
+            
+            echo "$category|$node_category_dir/src/cli.js|$description"
+        fi
     fi
 }
 
@@ -191,18 +226,6 @@ execute_tool() {
     local tool_name="${tool_spec#*:}"
     
     # 查找工具
-    local script_path=""
-    local description=""
-    
-    get_category_tools "$category" | while IFS='|' read -r name path desc; do
-        if [ "$name" = "$tool_name" ]; then
-            script_path="$path"
-            description="$desc"
-            break
-        fi
-    done
-    
-    # 重新查找（因為 while 在子 shell 中）
     local found_tool=$(get_category_tools "$category" | grep "^${tool_name}|")
     
     if [ -z "$found_tool" ]; then
@@ -215,8 +238,8 @@ execute_tool() {
         return 1
     fi
     
-    script_path=$(echo "$found_tool" | cut -d'|' -f2)
-    description=$(echo "$found_tool" | cut -d'|' -f3)
+    local script_path=$(echo "$found_tool" | cut -d'|' -f2)
+    local description=$(echo "$found_tool" | cut -d'|' -f3)
     
     echo -e "${BLUE}🚀 執行工具：$tool_spec${NC}"
     echo -e "${CYAN}描述：$description${NC}"
@@ -228,6 +251,25 @@ execute_tool() {
         return 1
     fi
     
+    # 判斷是 Bash 工具還是 Node.js 工具
+    if [[ "$script_path" == *"/bash-tools/"* ]]; then
+        # Bash 工具
+        execute_bash_tool "$script_path" $args
+    elif [[ "$script_path" == *"/node-tools/"* ]]; then
+        # Node.js 工具
+        execute_node_tool "$category" "$tool_name" $args
+    else
+        echo -e "${RED}❌ 無法識別工具類型：$script_path${NC}"
+        return 1
+    fi
+}
+
+# 執行 Bash 工具
+execute_bash_tool() {
+    local script_path="$1"
+    shift
+    local args="$@"
+    
     # 檢查腳本是否可執行
     if [ ! -x "$script_path" ]; then
         echo -e "${YELLOW}⚠️  設定腳本執行權限...${NC}"
@@ -236,6 +278,63 @@ execute_tool() {
     
     # 執行腳本
     "$script_path" $args
+}
+
+# 執行 Node.js 工具
+execute_node_tool() {
+    local category="$1"
+    local tool_name="$2"
+    shift 2
+    local args="$@"
+    
+    local node_tool_dir="$TOOLS_DIR/node-tools/$category"
+    
+    # 檢查 Node.js 和 pnpm
+    if ! command -v node &> /dev/null; then
+        echo -e "${RED}❌ 需要 Node.js 18+ 才能執行此工具${NC}"
+        return 1
+    fi
+    
+    # 檢查 Node.js 版本
+    local node_version=$(node -v | sed 's/v//')
+    local min_version="18.0.0"
+    local max_version="22.99.99"
+    
+    # 檢查最低版本
+    if [[ "$(printf '%s\n' "$min_version" "$node_version" | sort -V | head -n1)" != "$min_version" ]]; then
+        echo -e "${RED}❌ 需要 Node.js $min_version 或更高版本，當前版本: $node_version${NC}"
+        return 1
+    fi
+    
+    # 檢查最高版本（警告）
+    if [[ "$(printf '%s\n' "$max_version" "$node_version" | sort -V | head -n1)" != "$node_version" ]]; then
+        echo -e "${YELLOW}⚠️  Node.js 版本 $node_version 可能未經完整測試${NC}"
+        echo -e "${CYAN}💡 建議使用 Node.js 18.x 或 20.x LTS 版本${NC}"
+        echo -e "${CYAN}💡 如遇到問題，請參考 scripts/UPGRADE.md${NC}"
+    fi
+    
+    # 確保根層級依賴已安裝
+    if [ ! -d "$TOOLS_DIR/node_modules" ]; then
+        echo -e "${YELLOW}⚠️  安裝共用依賴...${NC}"
+        cd "$TOOLS_DIR" && pnpm install
+    fi
+    
+    # 確保工具依賴已安裝
+    if [ -f "$node_tool_dir/package.json" ] && [ ! -d "$node_tool_dir/node_modules" ]; then
+        echo -e "${YELLOW}⚠️  安裝工具依賴...${NC}"
+        cd "$node_tool_dir" && pnpm install
+    fi
+    
+    # 執行 Node.js 工具
+    cd "$node_tool_dir"
+    
+    # 如果工具名稱與分類相同，直接執行 CLI
+    if [ "$tool_name" = "$category" ]; then
+        node src/cli.js $args
+    else
+        # 否則傳遞工具名稱作為子命令
+        node src/cli.js "$tool_name" $args
+    fi
 }
 
 # 互動式選單
@@ -324,6 +423,7 @@ interactive_category_menu() {
         fi
     done
 }
+
 
 # 主程式
 main() {

@@ -202,10 +202,23 @@ source ~/.zshrc  # 或 source ~/.bashrc
 
 ## ⚙️ 系統需求
 
-- **作業系統：** macOS / Linux
+- **作業系統：** macOS / Linux / Windows (WSL)
 - **Shell：** Bash 4.0+
+- **Node.js：** 18.0+ (推薦 18.x 或 20.x LTS)
+- **pnpm：** 8.0+
 - **Git：** 2.0+
 - **網路連線：** 遠端操作需要
+
+### Node.js 版本支援
+
+| 版本 | 支援狀態 | 備註 |
+|------|---------|------|
+| 18.x LTS | ✅ 完全支援 | 推薦 |
+| 20.x LTS | ✅ 完全支援 | 推薦 |
+| 21.x | ⚠️ 部分支援 | 可能有問題 |
+| 22.x+ | ❌ 未測試 | 不建議使用 |
+
+如需升級 Node.js，請參考 [UPGRADE.md](UPGRADE.md)
 
 ## 🔒 安全特性
 
